@@ -1,0 +1,41 @@
+cycles_F1=[[0, 271], #stan pełnej zdatności 
+ [272, 559], #zatkana rura w 20%
+ [560, 847], #stan pełnej zdatności 
+ [848, 1131], #zatkana rura w 40%
+ [1132, 1419], #stan pełnej zdatności 
+ [1420, 1706], #zatkana rura w 60%
+ [1707, 1996], #stan pełnej zdatności 
+ [1997, 2284]] #zatkana rura w 80%
+
+
+cycles_F2 = [[0, 347], #stan pełnej zdatności 
+ [348, 633], #cyberatak
+ [634, 911], #stan pełnej zdatności 
+ [912, 1196], #cyberatak
+ [1197, 1481], #stan pełnej zdatności 
+ [1482, 1763], #cyberatak
+ [1764, 2048], #stan pełnej zdatności 
+ [2049, 2327]] #cyberatak
+
+
+cycles_F3 = [[0, 295], #stan pełnej zdatności 
+ [296, 589], #wyciek
+ [590, 884], #uzupełnianie
+ [885, 1247], #stan pełnej zdatności 
+ [1248, 1541], #wyciek
+ [1542, 1802], #uzupełnianie
+ [1803, 2087], #stan pełnej zdatności 
+ [2088, 2383], #wyciek
+ [2384, 2640], #uzupełnianie
+ [2641, 3108], #stan pełnej zdatności 
+ [3109, 3399], #wyciek
+ [3400, 3601]] #uzupełnianie
+
+cycles_F4 = [[0, 286], #stan pełnej zdatności 
+ [287, 565], #błąd operatora
+ [566, 852], #stan pełnej zdatności 
+ [853, 1135], #błąd operatora
+ [1136, 1421], #stan pełnej zdatności 
+ [1422, 1709], #błąd operatora
+ [1710, 1996], #stan pełnej zdatności 
+ [1997, 2273]] #błąd operatora
