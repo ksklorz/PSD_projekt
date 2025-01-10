@@ -1,6 +1,9 @@
 from commonTools import *
 from math import inf
 import matplotlib.pyplot as plt
+import numpy as np
+
+from tools import myFilter
 
 def leak_detection(dane):
 
@@ -33,7 +36,7 @@ def leak_detection(dane):
     return faultTimes
 
 def clogging_detection(dane):
-    
+
     # level_b101 = dane['KQ1001_Level_B101']
     # level_b102 = dane['KQ1001_Level_B102']
     # state = dane['State']
@@ -51,21 +54,113 @@ def clogging_detection(dane):
                 fault = False
                 FlowMaxTime = 0
         else:
-            if row['Set_PumpSpeed_P101'] > 95.0:
-                FlowMaxTime += 1
-                if FlowMaxTime > 5:
+            # if row['Set_PumpSpeed_P101'] > 99.0:
+            if (3 == row['State']):
+                error = row['Flow_FlowmeterB102'] - row['SetFlow_manual']
+                if error < -0.1:
+                    FlowMaxTime += 1
+                    if FlowMaxTime > 5:
+                        fault = True
+                        faultTimes.append(tlmTime[i])
+                else:
+                    FlowMaxTime = 0
+            else:
+                FlowMaxTime = 0
+        last_state = row['State']
+
+    plt.clf
+    plt.plot(tlmTime, dane['Set_PumpSpeed_P101'])
+    plt.plot(tlmTime, dane['Flow_FlowmeterB102']*100)
+    plt.plot(tlmTime, dane['SetFlow_manual']*100)
+    for fault_time in faultTimes:
+        plt.axvline(x=fault_time, color='r', linestyle='--')
+    # plt.show()
+
+    return faultTimes
+
+def attack_detection(dane):
+    tlmTime = pd.to_datetime(dane['MeasureTime'])
+
+    fault = False
+    last_state = 9
+    faultTimes = []
+    MaxTime = 0
+
+    filterLow = myFilter(dt=1.0, tau = 3.0, state = 0.0)
+    filterHigh = myFilter(dt=1.0, tau = 0.5, state = 0.0)
+
+    filtered = 0.0
+    FILTER = np.zeros(len(dane))
+    # fLow = 0.0
+
+
+    for i, row in dane.iterrows():
+        filtered = filterHigh.high_pass_filter(row['Pressure_Tank103'])
+        filtered = abs(filtered)
+        filtered = filterLow.low_pass_filter(filtered)
+        if fault:
+            if (1 == row['State']) and (9 == last_state):
+                fault = False
+                filterLow.set_state(row['Pressure_Tank103'])
+                filterHigh.set_state(row['Pressure_Tank103'])
+                MaxTime = 0
+        else:
+            if filtered > 5:
+                MaxTime += 1
+                if MaxTime > 25:
                     fault = True
                     faultTimes.append(tlmTime[i])
             else:
-                FlowMaxTime = 0
+                MaxTime = 0
+        last_state = row['State']
+
+        FILTER[i] = filtered
 
 
-    plt.plot(tlmTime, dane['Set_PumpSpeed_P101'])
+    plt.clf()
+    plt.plot(tlmTime, dane['Pressure_Tank103'])
+    plt.plot(tlmTime, FILTER*30)
+    for fault_time in faultTimes:
+        plt.axvline(x=fault_time, color='r', linestyle='--')
+    # plt.show()
+
+    return faultTimes
+
+def error_detection(dane):
+    tlmTime = pd.to_datetime(dane['MeasureTime'])
+
+    fault = False
+    last_state = 9
+    faultTimes = []
+    MaxTime = 0
+
+    for i, row in dane.iterrows():
+        if fault:
+            if (1 == row['State']) and (9 == last_state):
+                fault = False
+                MaxTime = 0
+        else:
+            if (2 == row['State']) or (7 == row['State']):
+                error = row['Pressure_Tank103'] - row['SetPressureTank103_manual']
+                if error < -30:
+                    MaxTime += 1
+                    if MaxTime > 20:
+                        fault = True
+                        faultTimes.append(tlmTime[i])
+                else:
+                    MaxTime = 0
+        last_state = row['State']
+
+    plt.clf()
+    plt.plot(tlmTime, dane['Pressure_Tank103'])
+    plt.plot(tlmTime, dane['SetPressureTank103_manual'])
     for fault_time in faultTimes:
         plt.axvline(x=fault_time, color='r', linestyle='--')
     plt.show()
 
     return faultTimes
+
+
 
 def detectCycle(dane):
 
@@ -109,7 +204,7 @@ def detectCycle(dane):
             if 0 == V102[index]:
                 state = 1
 
-        
+
         States[index] = state
 
     dane['State'] = States
@@ -125,15 +220,27 @@ def main():
         cycleName = 'cycles_F1'
 
         tlmTime, data, cycles = read_data(fileName, cycleName, [-inf, inf])
-        detectCycle(data)    
-    
-        # leakTimes = leak_detection(data)
+        detectCycle(data)
+
+        leakTimes = leak_detection(data)
         cloggingTimes = clogging_detection(data)
+        attackTimes = attack_detection(data)
+        errorTimes = error_detection(data)
+
+        fault_counts = {
+            'fileName': os.path.basename(fileName),
+            'leakTimes': len(leakTimes),
+            'cloggingTimes': len(cloggingTimes),
+            'attackTimes': len(attackTimes),
+            'errorTimes': len(errorTimes)
+        }
+        print(fault_counts)
 
         # leakNumber = len(leakTimes)
 
         # print(f'File: {fileName}')
         # print(f'Number of leaks: {leakNumber}')
+
 
 
 if __name__ == '__main__':
