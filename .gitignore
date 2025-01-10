@@ -33,3 +33,7 @@ SKRYPTY/FIG/*
 *.fls
 *.log
 *.synctex.gz
+
+#pythonowe
+SKRYPTY/__pycache__/
+*.pyc

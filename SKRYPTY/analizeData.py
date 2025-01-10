@@ -126,15 +126,6 @@ def attack_detection(timeConstraints = [-inf, inf]):
 
     #####################################################################################################################
 
-def cycles_inPlot(cycles):
-    yLimits = plt.ylim()
-    xLimits = plt.xlim()
-    H = yLimits[1] - (yLimits[1] - yLimits[0]) *0.03
-    for cycle in cycles:
-        if (cycle[1] > xLimits[0] and cycle[1] < xLimits[1]):
-            plt.axvline(x=cycle[1], color='k', linestyle='--', linewidth=0.8)
-            plt.text(cycle[0], H, cycle[2], rotation=0, color='k', fontsize=6)
-
 def main():
     clogging_detection([1700, 2280]) # rura zatkana 80%
     clogging_detection([550, 1130]) # zatkana rura w 40%

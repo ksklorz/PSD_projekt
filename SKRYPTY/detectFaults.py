@@ -54,10 +54,10 @@ def clogging_detection(dane):
                 fault = False
                 FlowMaxTime = 0
         else:
-            # if row['Set_PumpSpeed_P101'] > 99.0:
-            if (3 == row['State']):
+            if row['Set_PumpSpeed_P101'] > 95.0:
+            # if (3 == row['State']):
                 error = row['Flow_FlowmeterB102'] - row['SetFlow_manual']
-                if error < -0.1:
+                if error < -0.05:
                     FlowMaxTime += 1
                     if FlowMaxTime > 5:
                         fault = True
@@ -156,7 +156,7 @@ def error_detection(dane):
     plt.plot(tlmTime, dane['SetPressureTank103_manual'])
     for fault_time in faultTimes:
         plt.axvline(x=fault_time, color='r', linestyle='--')
-    plt.show()
+    # plt.show()
 
     return faultTimes
 
@@ -236,12 +236,111 @@ def main():
         }
         print(fault_counts)
 
-        # leakNumber = len(leakTimes)
+def leakExample():
+    fileName = 'DANE/F3_data.csv'
+    script_dir = os.path.dirname(__file__)
+    fileName = os.path.join(script_dir, fileName)
+    cycleName = 'cycles_F3'
 
-        # print(f'File: {fileName}')
-        # print(f'Number of leaks: {leakNumber}')
+    tlmTime, data, cycles = read_data(fileName, cycleName, [-inf, inf])
+    detectCycle(data)
+    leakTimes = leak_detection(data)
+    tempTime = pd.to_datetime(data['MeasureTime'])
+    # for i in range(len(leakTimes)):
+    #     leakTimes[i] -= tempTime.iloc[0]
 
+    plt.clf()
+    plt.plot(tempTime, data['KQ1001_Level_B101'] + data['KQ1001_Level_B102'], label='Suma poziomów')
+    for fault_time in leakTimes:
+        plt.axvline(x=fault_time, color='r', linestyle='--', label='leak detection' if fault_time == leakTimes[0] else "")
+    cycles_inPlot(cycles, tempTime[0])
+    plt.legend()
+    plt.xlabel('Czas')
+    plt.ylabel('Poziom z biornikach, cm')
+    plt.title('Wykrycie wycieku')
+    plt.grid(True)
+    plt.show()
+
+def attackExample():
+    fileName = 'DANE/F2_data.csv'
+    script_dir = os.path.dirname(__file__)
+    fileName = os.path.join(script_dir, fileName)
+    cycleName = 'cycles_F2'
+
+    tlmTime, data, cycles = read_data(fileName, cycleName, [-inf, inf])
+    detectCycle(data)
+    leakTimes = attack_detection(data)
+    tempTime = pd.to_datetime(data['MeasureTime'])
+    # for i in range(len(leakTimes)):
+    #     leakTimes[i] -= tempTime.iloc[0]
+
+    plt.clf()
+    plt.plot(tempTime, data['Pressure_Tank103'])
+    for fault_time in leakTimes:
+        plt.axvline(x=fault_time, color='r', linestyle='--', label='fault detection' if fault_time == leakTimes[0] else "")
+    cycles_inPlot(cycles, tempTime[0])
+    plt.legend()
+    plt.xlabel('Czas')
+    plt.ylabel('ciśnienie w zbiorniku, mbar')
+    plt.title('Wykrycie cyberataku')
+    plt.grid(True)
+    plt.show()
+
+def errorExample():
+    fileName = 'DANE/F4_data.csv'
+    script_dir = os.path.dirname(__file__)
+    fileName = os.path.join(script_dir, fileName)
+    cycleName = 'cycles_F4'
+
+    tlmTime, data, cycles = read_data(fileName, cycleName, [-inf, inf])
+    detectCycle(data)
+    leakTimes = error_detection(data)
+    tempTime = pd.to_datetime(data['MeasureTime'])
+
+
+    plt.clf()
+    plt.plot(tempTime, data['Pressure_Tank103'])
+    plt.plot(tempTime, data['SetPressureTank103_manual'])
+    for fault_time in leakTimes:
+        plt.axvline(x=fault_time, color='r', linestyle='--', label='fault detection' if fault_time == leakTimes[0] else "")
+    cycles_inPlot(cycles, tempTime[0])
+    plt.legend()
+    plt.xlabel('Czas')
+    plt.ylabel('ciśnienie w zbiorniku, mbar')
+    plt.title('Wykrycie błędu operatora')
+    plt.grid(True)
+    plt.show()
+
+def clogginExample():
+    fileName = 'DANE/F1_data.csv'
+    script_dir = os.path.dirname(__file__)
+    fileName = os.path.join(script_dir, fileName)
+    cycleName = 'cycles_F1'
+
+    tlmTime, data, cycles = read_data(fileName, cycleName, [-inf, inf])
+    detectCycle(data)
+    leakTimes = clogging_detection(data)
+    tempTime = pd.to_datetime(data['MeasureTime'])
+
+
+    plt.clf()
+    plt.plot(tempTime, data['Flow_FlowmeterB102'], label='Przepływ B102')
+    plt.plot(tempTime, data['SetFlow_manual'], label='Przepływ zadany')
+    plt.plot(tempTime, data['Set_PumpSpeed_P101']/100.0, label='Prędkość pompy P101')
+    for fault_time in leakTimes:
+        plt.axvline(x=fault_time, color='r', linestyle='--', label='fault detection' if fault_time == leakTimes[0] else "")
+    cycles_inPlot(cycles, tempTime[0])
+    plt.legend()
+    plt.xlabel('Czas')
+    plt.ylabel('Przepływ L/min')
+    plt.title('Wykrycie przytkania')
+    plt.grid(True)
+    plt.show()
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    # leakExample()
+    # attackExample()
+    # errorExample()
+    clogginExample()

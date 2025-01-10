@@ -20,6 +20,7 @@
 \usepackage{lastpage}
 \usepackage{float}
 \usepackage{datetime}
+\usepackage{booktabs}
 
 
 \newdateformat{mydate}{\THEYEAR-\twodigit{\THEMONTH}-\twodigit{\THEDAY}}
@@ -111,25 +112,145 @@ Na rys. \ref{fig:error} przedstawiono moment błędu operatora. Widać, że w od
 
 \section{Testy diagnostyczne bazujące na diagnozowaniu bezpośrednim}
 
+Zaimplementowano kilka metod służących do deteklcji i izolacji konkretnych stanów. Przykłady przedstawiono poniżej.
 
-\subsection{Wykresy sygnałów diagnostycznych}
+\subsection{Wykrycie wycieku}
+
+W celu wykrycia wyceku sprawdzana jest suma poziomów w dwóch zbiornikach. W przypadku wycieku suma ta nagle maleje. Przed testem suma poziomów jest ustawiana. Wybrano arbitralną sume poziomów dla którego uznaje się że wystąpił wyciek. Wartość ta wynosi 190cm. Na rys. \ref{fig:wyciek1} przedstawiono działanie testu diagnostycznego dla przebiegu z awariami. Jak widać, wszystkie wycieki zostały wykryte, oraz nie wystąpiły fałszywe alarmy.
+
+\begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{leak_detection}
+        \caption{wykrycie wycieku}
+        \label{fig:wyciek1}
+\end{figure}
+
+Testy przeprowazdono dla wszystkich przebiegów. Zestawienie przedsatwiono w tabeli \ref{tab:wyciek2}.
+
+\begin{table}[H]
+\centering
+\caption{Wyniki testu wykrycia wycieku}
+\begin{tabular}{lcccc}
+\toprule
+Zestaw danych & F1\_data & F2\_data & F3\_data & F4\_data\\
+\midrule
+Rzeczywiste awarie & 0 & 0 & 4 & 0\\
+Wykryte awarie & 0 & 0 & 4 & 0\\
+\bottomrule
+\end{tabular}
+\label{tab:wyciek2}
+\end{table}
+
+Jak widać wszystkie wycieki zostały skutecznie wykryte, nie wystąpiły również fałszywe alarmy dla żadnego z przebiegów.
+
+\subsection{Wykrycie cyberataku}
+
+W celu wykrycia cyberataku sprawdzane są oscylacje regulowanych wartości ciśnienia. W celu wykrycia oscylacji, wartość mierzona filtrowana jest górnoprzepustowo, a następnie brana jest wartosc bezwględna (w testach dało to lepsze rezultaty niż RMS). Wartość ta następnie jest filtrowana dolnoprzepustowo i porównywana z wybranym progiem. Jeśli poziom utrzymuje się dłużej niż określony czas uznaje się, że wystąpił cyberatak. Wartość progu oraz czasu zostały dobrane arbitralnie. Na rys. \ref{fig:atak1} przedstawiono działanie testu diagnostycznego dla przebiegu z awariami. Jak widać, wszystkie cyberataki zostały wykryte, oraz nie wystąpiły fałszywe alarmy.
+
+\begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{attack_detection}
+        \caption{wykrycie cyberataku}
+        \label{fig:atak1}
+\end{figure}
+
+Test przeprowadzono dla wszystkich przebiegów. Zestawienie przedstawiono w tabeli \ref{tab:atak2}.
+
+\begin{table}[H]
+\centering
+\caption{Wyniki testu wykrycia cyberataku}
+\begin{tabular}{lcccc}
+\toprule
+Zestaw danych & F1\_data & F2\_data & F3\_data & F4\_data\\
+\midrule
+Rzeczywiste awarie & 0 & 4 & 0 & 0\\
+Wykryte awarie & 0 & 4 & 0 & 0\\
+\bottomrule
+\end{tabular}
+\label{tab:atak2}
+\end{table}
+
+Wszystkie cyberataki zostały skutecznie wykryte, nie wystąpiły również fałszywe alarmy dla żadnego z innych przebiegów.
+
+\subsection{Wykrycie błedu operatora}
+
+Bład operatora jest wykrywany na podstawie różnicy między zadanym ciśnieniem w zbiorniku, a ciśnieniem rzeczywistym. W przypadku błedu operatora ciśnienie w zbiorniku nie jest poprawnie utrzymywane. Jeżeli w fazie, w której ciśnienie w zbiorniku powinno byś utrzymywane, jest ona zbyt niskie przez określony czas, uznaje się, że wystąpił błąd operatora. Wartości progu oraz czasu zostały dobrane arbitralnie. Na rys. \ref{fig:error1} przedstawiono działanie testu diagnostycznego dla przebiegu z awariami. Jak widać, wszystkie błędy operatora zostały wykryte, oraz nie wystąpiły fałszywe alarmy.
+
+\begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{error_detection}
+        \caption{wykrycie błędu operatora}
+        \label{fig:error1}
+\end{figure}
+
+W tabeli \ref{tab:error2} przedstawiono wyniki testu dla wszystkich przebiegów.
+
+\begin{table}[H]
+\centering
+\caption{Wyniki testu wykrycia błędu operatora}
+\begin{tabular}{lcccc}
+\toprule
+Zestaw danych & F1\_data & F2\_data & F3\_data & F4\_data\\
+\midrule
+Rzeczywiste awarie & 0 & 0 & 0 & 4\\
+Wykryte awarie & 0 & 1 & 2 & 4\\
+\bottomrule
+\end{tabular}
+\label{tab:error2}
+\end{table}
+
+Okazało się, że w przebiegu F2 i F3 (odpowiednio cyberatak i wyciek) zdiagnozowano problemy jako błędy operatora. Oznacza to, zę powyższy sposób nieskutecznie wyizolował problemy
+
+\subsection{Wykrycie przytkania}
+
+W celu wykrycia przytkania sprawdzana jest różnica między zadanym przepływem, a rzeczywistym. W przypadku przytkania, pomimo pełnego wysterowania pompy, nie da się zrealizować rządanego przepływu. Jeżeli przy odpowiednio dużym wysterowaniu przez określony czas utrzymywany jest błąd przepływu uznaje się, że wystąpiło przytkanie. Wartości progu oraz czasu zostały dobrane arbitralnie. Na rys. \ref{fig:zatkanie3} przedstawiono działanie testu diagnostycznego dla przebiegu z awariami.
+
+\begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{clogging_detection.pdf}
+        \caption{Wykrycie przytkania}
+        \label{fig:zatkanie3}
+\end{figure}
+
+Jak widać, nie wszystkie przebiegi zostały poprawnie zdiagnozowane.W przypadku małego przytkania pompa skutcznie radziła sobie z zapewnieniem poprawnego przebiegu.
+
+W tabeli \ref{tab:zatkanie2} przedstawiono wyniki testu dla wszystkich przebiegów.
+
+\begin{table}[H]
+\centering
+\caption{Wyniki testu wykrycia przytkania}
+\begin{tabular}{lcccc}
+\toprule
+Zestaw danych & F1\_data & F2\_data & F3\_data & F4\_data\\
+\midrule
+Rzeczywiste awarie & 4 & 0 & 0 & 0\\
+Wykryte awarie & 2 & 8 & 1 & 8\\
+\bottomrule
+\end{tabular}
+\label{tab:zatkanie2}
+\end{table}
+
+Tutaj okazało się, że zaproponowany sposób zgłasza bardzo dużo fałszywych alarmów. Co więcej, dla innych przebiegów awarie były zgłaszane nawet w momentach które powinny być uznane za sprawne. Jednak na prebiegach rzeczywisćie da się zaobserować anormalne zachowanie i niezapewnienie rządanego przzepływu w tych momentach. 
 
 
-\subsection{Wyznaczenie wskaźników detekcji uszkodzeń}
-
-\section{Testy diagnostyczne bazujące na modelu obiektu}
+% \subsection{Wykresy sygnałów diagnostycznych}
 
 
-\subsection{Wykresy sygnałów diagnostycznych}
+% \subsection{Wyznaczenie wskaźników detekcji uszkodzeń}
+
+% \section{Testy diagnostyczne bazujące na modelu obiektu}
 
 
-\subsection{Wyznaczenie wskaźników detekcji uszkodzeń}
+% \subsection{Wykresy sygnałów diagnostycznych}
 
 
-\section{Izolacja uszkodzeń}
+% \subsection{Wyznaczenie wskaźników detekcji uszkodzeń}
 
 
-\section{Wnioski}
+% \section{Izolacja uszkodzeń}
+
+
+% \section{Wnioski}
 
 
 \end{document}

@@ -1,5 +1,7 @@
 import pandas as pd
 import os
+import matplotlib.pyplot as plt
+from datetime import datetime, timedelta
 
 def read_data(file_path, cycle_name, timeConstraints):
     data = pd.read_csv(file_path)
@@ -42,3 +44,16 @@ def parse_cycles(cycle_name):
             cycles.append((start, end, text))
         
     return cycles
+
+def cycles_inPlot(cycles, timeZero):
+    yLimits = plt.ylim()
+    xLimits = plt.xlim()
+    cyclesTS = [timeZero]*len(cycles)
+    for i in range(len(cycles)):
+        cyclesTS[i] = timeZero + timedelta(seconds=cycles[i][0])
+
+    H = yLimits[1] - (yLimits[1] - yLimits[0]) *0.03
+    for i in range(len(cycles)):
+        # if (cyclesTS[i] > xLimits[0] and cyclesTS[i] < xLimits[1]):
+            plt.axvline(x=cyclesTS[i], color='k', linestyle='--', linewidth=0.8)
+            plt.text(cyclesTS[i], H, cycles[i][2], rotation=0, color='k', fontsize=6)
