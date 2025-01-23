@@ -5,6 +5,15 @@ import numpy as np
 
 from tools import myFilter
 
+def SetErrors(data, cycles):
+    data['Error'] = 0
+    for cycle in cycles:
+        state = cycle[2]
+        if state in ('zatkana rura w 80%', 'cyberatak', 'wyciek', 'uzupełnianie', 'błąd operatora'):
+            data.loc[(data.index >= cycle[0]) & (data.index <= cycle[1]), 'Error'] = 1
+    return data
+
+
 def leak_detection(dane):
 
     level_b101 = dane['KQ1001_Level_B101']
@@ -26,6 +35,7 @@ def leak_detection(dane):
                 fault = True
                 faultTimes.append(tlmTime[i])
         last_state = row['State']
+        dane.at[i, 'detectedFault'] = fault
 
 
     plt.plot(tlmTime, level_total)
@@ -161,55 +171,6 @@ def error_detection(dane):
     return faultTimes
 
 
-
-def detectCycle(dane):
-
-    V101 = dane['V101_manual']
-    V102 = dane['set_valve_y102_open_manual']
-    V103 = dane['V103_manual']
-    V104 = dane['V104_manual']
-    V106 = dane['set_valve_v106_open_manual']
-    pumpSpeed = dane['Set_PumpSpeed_P101']
-    V108 = dane['V108_manual']
-    V112 = dane['V112_manual']
-
-    state = 1
-    States = [0] * len(dane)
-    for index, row in dane.iterrows():
-        if state == 1:
-            if V103[index] and V108[index]:
-                state = 2
-        elif state == 2:
-            if V104[index]:
-                state = 3
-        elif state == 3:
-            if V101[index]:
-                state = 4
-        elif state == 4:
-            if 0 == pumpSpeed[index]:
-                state = 5
-        elif state == 5:
-            if V102[index]:
-                state = 6
-        elif state == 6:
-            if V106[index] and V108[index]:
-                state = 7
-        elif state == 7:
-            if V101[index]:
-                state = 8
-        elif state == 8:
-            if V102[index] and V112[index]:
-                state = 9
-        elif state == 9:
-            if 0 == V102[index]:
-                state = 1
-
-
-        States[index] = state
-
-    dane['State'] = States
-    return States
-
 def main():
     fileNames = ['F1_data.csv', 'F2_data.csv', 'F3_data.csv', 'F4_data.csv']
 
@@ -244,16 +205,24 @@ def leakExample():
 
     tlmTime, data, cycles = read_data(fileName, cycleName, [-inf, inf])
     detectCycle(data)
+    SetErrors(data, cycles)
     leakTimes = leak_detection(data)
     tempTime = pd.to_datetime(data['MeasureTime'])
     # for i in range(len(leakTimes)):
     #     leakTimes[i] -= tempTime.iloc[0]
 
+    suma = data['KQ1001_Level_B101'] + data['KQ1001_Level_B102']
     plt.clf()
-    plt.plot(tempTime, data['KQ1001_Level_B101'] + data['KQ1001_Level_B102'], label='Suma poziomów')
-    for fault_time in leakTimes:
-        plt.axvline(x=fault_time, color='r', linestyle='--', label='leak detection' if fault_time == leakTimes[0] else "")
-    cycles_inPlot(cycles, tempTime[0])
+    plt.plot(tempTime, suma, label='Suma poziomów')
+    # for fault_time in leakTimes:
+    #     plt.axvline(x=fault_time, color='r', linestyle='--', label='leak detection' if fault_time == leakTimes[0] else "")
+    # cycles_inPlot(cycles, tempTime[0])
+    offset = suma.min()
+    skala = suma.max() - offset
+    plt.plot(tempTime, data['Error']*skala+offset, color = 'k', linestyle = '--', label = 'Rzeczywisty błąd')
+    plt.plot(tempTime, data['detectedFault']*skala+offset, color = 'r', linestyle = '--', label = 'Wykryty błąd')
+
+
     plt.legend()
     plt.xlabel('Czas')
     plt.ylabel('Poziom z biornikach, cm')
@@ -340,7 +309,7 @@ def clogginExample():
 
 if __name__ == '__main__':
     # main()
-    # leakExample()
+    leakExample()
     # attackExample()
     # errorExample()
-    clogginExample()
+    # clogginExample()
