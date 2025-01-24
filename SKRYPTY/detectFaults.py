@@ -13,6 +13,24 @@ def SetErrors(data, cycles):
             data.loc[(data.index >= cycle[0]) & (data.index <= cycle[1]), 'Error'] = 1
     return data
 
+def wskazniki_alarmow(data):
+    true_positives = ((data['Error'] == 1) & (data['detectedFault'] == 1)).sum()
+    false_positives = ((data['Error'] == 0) & (data['detectedFault'] == 1)).sum()
+    false_negatives = ((data['Error'] == 1) & (data['detectedFault'] == 0)).sum()
+    true_negatives = ((data['Error'] == 0) & (data['detectedFault'] == 0)).sum()
+
+    if true_positives + false_negatives > 0:
+        correct_alarm_rate = true_positives / (true_positives + false_negatives)
+    else:
+        correct_alarm_rate = 0
+
+    if false_positives + true_negatives > 0:
+        false_alarm_rate = false_positives / (false_positives + true_negatives)
+    else:
+        false_alarm_rate = 0
+
+    return correct_alarm_rate, false_alarm_rate
+
 
 def leak_detection(dane):
 
@@ -24,17 +42,23 @@ def leak_detection(dane):
 
     fault = False
     last_state = 9
+    last_error = 0
     faultTimes = []
 
     for i, row in dane.iterrows():
         if fault:
             if (3 == row['State']) and (2 == last_state):
                 fault = False
+
+            if (1 == last_error) and (0 == row['Error']):
+                fault = False
+
         else:
             if level_total[i] < 190:
                 fault = True
                 faultTimes.append(tlmTime[i])
         last_state = row['State']
+        last_error = row['Error']
         dane.at[i, 'detectedFault'] = fault
 
 
@@ -55,12 +79,17 @@ def clogging_detection(dane):
 
     fault = False
     last_state = 9
+    last_error = 0
     faultTimes = []
     FlowMaxTime = 0
 
     for i, row in dane.iterrows():
         if fault:
             if (1 == row['State']) and (9 == last_state):
+                fault = False
+                FlowMaxTime = 0
+
+            if (1 == last_error) and (0 == row['Error']):
                 fault = False
                 FlowMaxTime = 0
         else:
@@ -77,6 +106,8 @@ def clogging_detection(dane):
             else:
                 FlowMaxTime = 0
         last_state = row['State']
+        last_error = row['Error']
+        dane.at[i, 'detectedFault'] = fault
 
     plt.clf
     plt.plot(tlmTime, dane['Set_PumpSpeed_P101'])
@@ -93,6 +124,7 @@ def attack_detection(dane):
 
     fault = False
     last_state = 9
+    last_error = 0
     faultTimes = []
     MaxTime = 0
 
@@ -109,11 +141,12 @@ def attack_detection(dane):
         filtered = abs(filtered)
         filtered = filterLow.low_pass_filter(filtered)
         if fault:
-            if (1 == row['State']) and (9 == last_state):
+            if ((1 == row['State']) and (9 == last_state)) or ((1 == last_error) and (0 == row['Error'])):
                 fault = False
                 filterLow.set_state(row['Pressure_Tank103'])
                 filterHigh.set_state(row['Pressure_Tank103'])
                 MaxTime = 0
+
         else:
             if filtered > 5:
                 MaxTime += 1
@@ -123,6 +156,8 @@ def attack_detection(dane):
             else:
                 MaxTime = 0
         last_state = row['State']
+        last_error = row['Error']
+        dane.at[i, 'detectedFault'] = fault
 
         FILTER[i] = filtered
 
@@ -141,12 +176,13 @@ def error_detection(dane):
 
     fault = False
     last_state = 9
+    last_error = 0
     faultTimes = []
     MaxTime = 0
 
     for i, row in dane.iterrows():
         if fault:
-            if (1 == row['State']) and (9 == last_state):
+            if ((1 == row['State']) and (9 == last_state)) or ((1 == last_error) and (0 == row['Error'])):
                 fault = False
                 MaxTime = 0
         else:
@@ -160,6 +196,8 @@ def error_detection(dane):
                 else:
                     MaxTime = 0
         last_state = row['State']
+        last_error = row['Error']
+        dane.at[i, 'detectedFault'] = fault
 
     plt.clf()
     plt.plot(tlmTime, dane['Pressure_Tank103'])
@@ -202,6 +240,7 @@ def leakExample():
     script_dir = os.path.dirname(__file__)
     fileName = os.path.join(script_dir, fileName)
     cycleName = 'cycles_F3'
+    plt.figure(3, figsize=(10, 5))
 
     tlmTime, data, cycles = read_data(fileName, cycleName, [-inf, inf])
     detectCycle(data)
@@ -222,72 +261,102 @@ def leakExample():
     plt.plot(tempTime, data['Error']*skala+offset, color = 'k', linestyle = '--', label = 'Rzeczywisty błąd')
     plt.plot(tempTime, data['detectedFault']*skala+offset, color = 'r', linestyle = '--', label = 'Wykryty błąd')
 
+    TP, FP = wskazniki_alarmow(data)
+    print(f'TP: {TP}, FP: {FP}')
 
     plt.legend()
     plt.xlabel('Czas')
     plt.ylabel('Poziom z biornikach, cm')
     plt.title('Wykrycie wycieku')
     plt.grid(True)
-    plt.show()
+    # plt.show()
+    plt.savefig( os.path.join(script_dir, 'FIG/leak_detection_wskazniki.pdf'))
 
 def attackExample():
     fileName = 'DANE/F2_data.csv'
     script_dir = os.path.dirname(__file__)
     fileName = os.path.join(script_dir, fileName)
     cycleName = 'cycles_F2'
+    plt.figure(3, figsize=(10, 5))
 
     tlmTime, data, cycles = read_data(fileName, cycleName, [-inf, inf])
     detectCycle(data)
+    SetErrors(data, cycles)
     leakTimes = attack_detection(data)
     tempTime = pd.to_datetime(data['MeasureTime'])
     # for i in range(len(leakTimes)):
     #     leakTimes[i] -= tempTime.iloc[0]
 
     plt.clf()
-    plt.plot(tempTime, data['Pressure_Tank103'])
-    for fault_time in leakTimes:
-        plt.axvline(x=fault_time, color='r', linestyle='--', label='fault detection' if fault_time == leakTimes[0] else "")
-    cycles_inPlot(cycles, tempTime[0])
+    plt.plot(tempTime, data['Pressure_Tank103'], label = 'Ciśnienie w zbiorniku')
+    # for fault_time in leakTimes:
+    #     plt.axvline(x=fault_time, color='r', linestyle='--', label='fault detection' if fault_time == leakTimes[0] else "")
+    # cycles_inPlot(cycles, tempTime[0])
+    suma = data['Pressure_Tank103']
+    offset = suma.min()
+    skala = suma.max() - offset
+    plt.plot(tempTime, data['Error']*skala+offset, color = 'k', linestyle = '--', label = 'Rzeczywisty błąd')
+    plt.plot(tempTime, data['detectedFault']*skala+offset, color = 'r', linestyle = '--', label = 'Wykryty błąd')
+
+    TP, FP = wskazniki_alarmow(data)
+    print(f'TP: {TP}, FP: {FP}')
+
     plt.legend()
     plt.xlabel('Czas')
     plt.ylabel('ciśnienie w zbiorniku, mbar')
     plt.title('Wykrycie cyberataku')
     plt.grid(True)
-    plt.show()
+    # plt.show()
+    plt.savefig( os.path.join(script_dir, 'FIG/attack_detection_wskazniki.pdf'))
 
 def errorExample():
     fileName = 'DANE/F4_data.csv'
     script_dir = os.path.dirname(__file__)
     fileName = os.path.join(script_dir, fileName)
     cycleName = 'cycles_F4'
+    plt.figure(3, figsize=(10, 5))
 
     tlmTime, data, cycles = read_data(fileName, cycleName, [-inf, inf])
     detectCycle(data)
+    SetErrors(data, cycles)
     leakTimes = error_detection(data)
     tempTime = pd.to_datetime(data['MeasureTime'])
 
 
     plt.clf()
-    plt.plot(tempTime, data['Pressure_Tank103'])
-    plt.plot(tempTime, data['SetPressureTank103_manual'])
-    for fault_time in leakTimes:
-        plt.axvline(x=fault_time, color='r', linestyle='--', label='fault detection' if fault_time == leakTimes[0] else "")
-    cycles_inPlot(cycles, tempTime[0])
+    plt.plot(tempTime, data['Pressure_Tank103'], label = 'Ciśnienie w zbiorniku')
+    plt.plot(tempTime, data['SetPressureTank103_manual'], label = 'zadane ciśnienie')
+    # for fault_time in leakTimes:
+    #     plt.axvline(x=fault_time, color='r', linestyle='--', label='fault detection' if fault_time == leakTimes[0] else "")
+    # cycles_inPlot(cycles, tempTime[0])
+
+    suma = data['Pressure_Tank103']
+    offset = suma.min()
+    skala = suma.max() - offset
+    plt.plot(tempTime, data['Error']*skala+offset, color = 'k', linestyle = '--', label = 'Rzeczywisty błąd')
+    plt.plot(tempTime, data['detectedFault']*skala+offset, color = 'r', linestyle = '--', label = 'Wykryty błąd')
+
+    TP, FP = wskazniki_alarmow(data)
+    print(f'TP: {TP}, FP: {FP}')
+
     plt.legend()
     plt.xlabel('Czas')
     plt.ylabel('ciśnienie w zbiorniku, mbar')
     plt.title('Wykrycie błędu operatora')
     plt.grid(True)
-    plt.show()
+    # plt.show()
+    plt.savefig( os.path.join(script_dir, 'FIG/error_detection_wskazniki.pdf'))
 
 def clogginExample():
     fileName = 'DANE/F1_data.csv'
     script_dir = os.path.dirname(__file__)
     fileName = os.path.join(script_dir, fileName)
     cycleName = 'cycles_F1'
+    plt.figure(3, figsize=(10, 5))
 
     tlmTime, data, cycles = read_data(fileName, cycleName, [-inf, inf])
     detectCycle(data)
+    SetErrors(data, cycles)
     leakTimes = clogging_detection(data)
     tempTime = pd.to_datetime(data['MeasureTime'])
 
@@ -296,20 +365,31 @@ def clogginExample():
     plt.plot(tempTime, data['Flow_FlowmeterB102'], label='Przepływ B102')
     plt.plot(tempTime, data['SetFlow_manual'], label='Przepływ zadany')
     plt.plot(tempTime, data['Set_PumpSpeed_P101']/100.0, label='Prędkość pompy P101')
-    for fault_time in leakTimes:
-        plt.axvline(x=fault_time, color='r', linestyle='--', label='fault detection' if fault_time == leakTimes[0] else "")
-    cycles_inPlot(cycles, tempTime[0])
+    # for fault_time in leakTimes:
+    #     plt.axvline(x=fault_time, color='r', linestyle='--', label='fault detection' if fault_time == leakTimes[0] else "")
+    # cycles_inPlot(cycles, tempTime[0])
+
+    suma = data['Flow_FlowmeterB102']
+    offset = suma.min()
+    skala = suma.max() - offset
+    plt.plot(tempTime, data['Error']*skala+offset, color = 'k', linestyle = '--', label = 'Rzeczywisty błąd')
+    plt.plot(tempTime, data['detectedFault']*skala+offset, color = 'r', linestyle = '--', label = 'Wykryty błąd')
+
+    TP, FP = wskazniki_alarmow(data)
+    print(f'TP: {TP}, FP: {FP}')
+
     plt.legend()
     plt.xlabel('Czas')
     plt.ylabel('Przepływ L/min')
     plt.title('Wykrycie przytkania')
     plt.grid(True)
-    plt.show()
+    # plt.show()
+    plt.savefig( os.path.join(script_dir, 'FIG/clogging_detection_wskazniki.pdf'))
 
 
 if __name__ == '__main__':
     # main()
     leakExample()
-    # attackExample()
-    # errorExample()
-    # clogginExample()
+    attackExample()
+    errorExample()
+    clogginExample()

@@ -9,11 +9,11 @@ def clogging_detection(timeConstraints = [-inf, inf]):
     """
     Detects clogging in a pipe based on flow and pump speed data within a specified time range.
     Parameters:
-    interestinTime (list): A list containing two elements [start_time, end_time] in seconds. 
-                           The function will analyze data within this time range. 
+    interestinTime (list): A list containing two elements [start_time, end_time] in seconds.
+                           The function will analyze data within this time range.
                            Default is [-inf, inf], which means the entire dataset.
     Returns:
-    None: The function generates a plot showing the pump speed and flow rate over time, 
+    None: The function generates a plot showing the pump speed and flow rate over time,
           highlights cycles, and saves the plot as a PDF file.
     The function performs the following steps:
     1. Reads data from 'DANE/F1_data.csv'.
@@ -48,7 +48,7 @@ def clogging_detection(timeConstraints = [-inf, inf]):
     plt.clf()
 
 def leak_detection(timeConstraints = [-inf, inf]):
-    
+
     fileName = 'DANE/F3_data.csv'
     cycleName = 'cycles_F3'
     tlmTime, data, cycles = read_data(fileName, cycleName, timeConstraints)
@@ -97,7 +97,7 @@ def humanError_detection(timeConstraints = [-inf, inf]):
     plt.savefig(f'FIG\\error_detection_{timeConstraints[0]}_{timeConstraints[1]}.pdf')
     # plt.show()
     plt.clf()
-    
+
 
 def attack_detection(timeConstraints = [-inf, inf]):
     fileName = 'DANE/F2_data.csv'
@@ -122,7 +122,7 @@ def attack_detection(timeConstraints = [-inf, inf]):
     plt.savefig(f'FIG\\attack_detection_{timeConstraints[0]}_{timeConstraints[1]}.pdf')
     # plt.show()
     plt.clf()
-    
+
 
     #####################################################################################################################
 
@@ -132,11 +132,11 @@ def main():
 
     leak_detection() #cały przekrój
     leak_detection([0, 850]) #jeden cykl
-    
+
     attack_detection([1190, 1750]) #jeden cykl
 
     humanError_detection([550, 1100]) #jeden cykl
-    
+
 
 if __name__ == "__main__":
     main()
