@@ -340,7 +340,7 @@ def clogginExample():
 
 if __name__ == '__main__':
     # main()
-    # leakExample()
-    # attackExample()
-    # errorExample()
+    leakExample()
+    attackExample()
+    errorExample()
     clogginExample()
