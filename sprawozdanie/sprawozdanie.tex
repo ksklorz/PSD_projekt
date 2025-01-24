@@ -230,7 +230,59 @@ Wykryte awarie & 2 & 8 & 1 & 8\\
 \label{tab:zatkanie2}
 \end{table}
 
-Tutaj okazało się, że zaproponowany sposób zgłasza bardzo dużo fałszywych alarmów. Co więcej, dla innych przebiegów awarie były zgłaszane nawet w momentach które powinny być uznane za sprawne. Jednak na prebiegach rzeczywisćie da się zaobserować anormalne zachowanie i niezapewnienie rządanego przzepływu w tych momentach. 
+Tutaj okazało się, że zaproponowany sposób zgłasza bardzo dużo fałszywych alarmów. Co więcej, dla innych przebiegów awarie były zgłaszane nawet w momentach które powinny być uznane za sprawne. Jednak na prebiegach rzeczywisćie da się zaobserować anormalne zachowanie i niezapewnienie rządanego przzepływu w tych momentach.
+
+\section{Wskaźniki alarmów}
+
+W celu określenia poprawności przedsatwionych algorytmów wykrywania alarmów obliczono wskaźniki dla każdej z metod. Skrypty przerobiono tak, by dla każdej próbki czasowej była określona wartość alarmu. Wyznaczoną wartosć porónano z zadeklarowaną wartością z pliku. Przebiegi sygnałów alarmów przedstawiono na rysunkach \ref{fig:wyciek5} do \ref{fig:zatkanie5}. dodatkowo przyjęto, że usuniecie usterki powodowao wyłączenie alarmu.
+
+\begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{leak_detection_wskazniki.pdf}
+        \caption{Wykrycie wycieku}
+        \label{fig:wyciek5}
+\end{figure}
+
+\begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{attack_detection_wskazniki.pdf}
+        \caption{Wykrycie cyberataku}
+        \label{fig:atak5}
+\end{figure}
+
+\begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{error_detection_wskazniki.pdf}
+        \caption{Wykrycie błędu operatora}
+        \label{fig:error5}
+\end{figure}
+
+\begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{clogging_detection_wskazniki.pdf}
+        \caption{Wykrycie przytkania}
+        \label{fig:zatkanie5}
+\end{figure}
+
+Na podstawie danych obliczone wskaźniki przedstawiono w tabeli \ref{tab:wskaźniki}. Każdorazowo wyznaczano je dla dedykowanego zestawu danych.
+
+\begin{table}[H]
+\centering
+\caption{Wskaźniki alarmów}
+\begin{tabular}{lcccc}
+\toprule
+Diagnozowany alarm & \textbf{Wyciek} & \textbf{Cyberatak} & \textbf{Błąd operatora} & \textbf{Przytkanie}\\
+\midrule
+Wskaźnik fałszywych alarmów & 0 \% & 0 \% & 0 \% & 7,5 \% \\
+Wskaźnik prawidłowyc alarmów & 78,7 \% & 91,1 \% & 92,5 \% & 86,8 \% \\
+\bottomrule
+\end{tabular}
+\label{tab:wskaźniki}
+\end{table}
+
+Na danych można zaobserować, ze fałszywe alarmy praktycznie nie wystepowały. Jedyny przypadek fałszywego alarmu wystąpił przy przytkaniu, ale na zebranych danych rzeczywiście można zaobserwowac anomalie, co podaje w wątpliwość prawdziwość informacji o stanie układu.
+
+Wszystkie usterki zostały wykryte, zazwyczaj w dość krótkim czasie.
 
 
 % \subsection{Wykresy sygnałów diagnostycznych}
