@@ -21,6 +21,8 @@
 \usepackage{float}
 \usepackage{datetime}
 \usepackage{booktabs}
+\usepackage{subfig}
+% \usepackage{subcaption}
 
 
 \newdateformat{mydate}{\THEYEAR-\twodigit{\THEMONTH}-\twodigit{\THEDAY}}
@@ -283,6 +285,105 @@ Wskaźnik prawidłowyc alarmów & 78,7 \% & 91,1 \% & 92,5 \% & 86,8 \% \\
 Na danych można zaobserować, ze fałszywe alarmy praktycznie nie wystepowały. Jedyny przypadek fałszywego alarmu wystąpił przy przytkaniu, ale na zebranych danych rzeczywiście można zaobserwowac anomalie, co podaje w wątpliwość prawdziwość informacji o stanie układu.
 
 Wszystkie usterki zostały wykryte, zazwyczaj w dość krótkim czasie.
+
+\section{Wnioskowanie oparte na modelu}
+
+
+Postanowiono zbudowac model obiektu, który pozwoli na wykrywanie anomali w prebiegu zmiennych procesowych. 
+
+W tym celu uznano za zasadne próbę wykrycia anomalii w zbiorniku B103. Wejściem modelu jest zarówno poprzednie zmierzone ciśnienie oraz wartość zadana. Dane z którego wycieto dane do uczenia pmodelu przedsatwiono na rysunku \ref{fig:model_data}.
+
+\begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{model_data.pdf}
+        \caption{Dane o ciśnieniach w zbiorniku}
+        \label{fig:model_data}
+\end{figure}
+
+Na wycinku danych w których nie występowała awaria zbudowano dwuwejściowy model LSTM. Strukturę modelu przedstawiono w tabeli \ref{tab:model_structure}. 
+
+\begin{table}[H]
+\centering
+\caption{Struktura modelu}
+\begin{tabular}{|l|c|r|}
+\hline
+\textbf{Layer (type)} & \textbf{Output Size} & \textbf{Liczba parametrów} \\
+\hline
+lstm (LSTM) & 50 & 10,600 \\
+\hline
+dropout (Dropout) & 50 & 0 \\
+\hline
+dense (Dense) & 25 & 1,275 \\
+\hline
+dense\_1 (Dense) & 1 & 26 \\
+\hline
+\end{tabular}
+\label{tab:model_structure}
+\end{table}
+
+W sumie model posiadał 35 705 parametrów, w tym blisko 12 tys. ucząćych się. 
+
+Model został wykonany na 30 epokach. Patrząc na wyniki uczenia przedstawione na rysunku \ref{fig:model_learning} uznano to za wystarczającą liczbę. 
+
+\begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{model_loss.pdf}
+        \caption{Wyniki uczenia modelu}
+        \label{fig:model_learning}
+\end{figure}
+
+Na rysunku \ref{fig:model_predict} przedstawiono uzyskany rezultat modelu przetestiwanego na innym wycinku danych. Można zwrócić uwagę, że W momencie w któym ciśnienie w zbiorniku nie było regulowane wartość zadana w danych spadała do zera. Jednak mimo to ciśnienie w zbiorniku było utrzymywane. Podejście to spowodowało pewne odchylenia w modelu. 
+
+\begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{model_learn.pdf}
+        \caption{Wyniki predykcji modelu na danych testowych}
+        \label{fig:model_predict}
+\end{figure}
+
+Porównując wartości ciśnienia rzeczywistego z wartością przewidywaną policzono residuum przedstawione na rysunku \ref{fig:model_residuum}. Histogram residuum przedstawiono na rysunku \ref{fig:model_residuum_hist}. Średnia wartość residuum była bliskia zeru. 
+\begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{model_residuum.pdf}
+        \caption{Residuum modelu}
+        \label{fig:model_residuum}
+\end{figure}
+\begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{model_residuum_hist.pdf}
+        \caption{Histogram residuum modelu}
+        \label{fig:model_residuum_hist}
+\end{figure}
+
+Na podstawie zebranych danych residuum określono odchylenie standardowe i określono limita na ich 3-krotność wokół wartości średniej. Limity te przedsatwiono na rysunmu \ref{fig:model_residuum_limit}.
+
+\begin{figure}[H]
+        \centering
+        \includegraphics[width=0.8\textwidth]{model_residuum_limits.pdf}
+        \caption{Limit residuum modelu}
+        \label{fig:model_residuum_limit}
+\end{figure}
+
+
+Model wraz z wnioskami o pseudopoprawnym residuum przetestowano dla wszystkich plików danych. Wyniki przedstawiono na rysunku \ref{fig:all}. 
+
+\newcommand*{\ww}{.48}
+\begin{figure}[H]
+    \newcommand{\im}{model_test_F}
+    \captionsetup[subfloat]{position=bottom,labelformat=empty} %
+
+    \subfloat[F1\_data]{\includegraphics[width=\ww\linewidth]{\im1.pdf}}
+    \hfill%	
+    \subfloat[F2\_data]{\includegraphics[width=\ww\linewidth]{\im2.pdf}}
+    \hfill%	
+    \subfloat[F3\_data]{\includegraphics[width=\ww\linewidth]{\im3.pdf}}
+    \hfill%	
+    \subfloat[F4\_data]{\includegraphics[width=\ww\linewidth]{\im4.pdf}}
+
+    \caption{Residuum dla różnych przebiegów} %
+    \label{fig:all} 
+\end{figure}
+
 
 
 % \subsection{Wykresy sygnałów diagnostycznych}
