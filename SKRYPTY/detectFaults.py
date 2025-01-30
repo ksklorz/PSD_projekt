@@ -5,32 +5,6 @@ import numpy as np
 
 from tools import myFilter
 
-def SetErrors(data, cycles):
-    data['Error'] = 0
-    for cycle in cycles:
-        state = cycle[2]
-        if state in ('zatkana rura w 80%', 'cyberatak', 'wyciek', 'uzupełnianie', 'błąd operatora'):
-            data.loc[(data.index >= cycle[0]) & (data.index <= cycle[1]), 'Error'] = 1
-    return data
-
-def wskazniki_alarmow(data):
-    true_positives = ((data['Error'] == 1) & (data['detectedFault'] == 1)).sum()
-    false_positives = ((data['Error'] == 0) & (data['detectedFault'] == 1)).sum()
-    false_negatives = ((data['Error'] == 1) & (data['detectedFault'] == 0)).sum()
-    true_negatives = ((data['Error'] == 0) & (data['detectedFault'] == 0)).sum()
-
-    if true_positives + false_negatives > 0:
-        correct_alarm_rate = true_positives / (true_positives + false_negatives)
-    else:
-        correct_alarm_rate = 0
-
-    if false_positives + true_negatives > 0:
-        false_alarm_rate = false_positives / (false_positives + true_negatives)
-    else:
-        false_alarm_rate = 0
-
-    return correct_alarm_rate, false_alarm_rate
-
 
 def leak_detection(dane):
 
