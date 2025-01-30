@@ -25,7 +25,7 @@ Thumbs.db
 
 # Ignore files in SKRYPTY\FIG but not the directory itself
 # SKRYPTY/FIG/*
-# !SKRYPTY/FIG/
+!SKRYPTY/FIG/
 
 # sprawozdanie/
 *.aux
